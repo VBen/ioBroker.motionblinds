@@ -1,0 +1,99 @@
+{
+	"common": {
+		"name": "motionblinds",
+		"version": "0.0.1",
+		"news": {
+			"0.0.1": {
+				"en": "initial release",
+				"de": "Erstveröffentlichung",
+				"ru": "Начальная версия",
+				"pt": "lançamento inicial",
+				"nl": "Eerste uitgave",
+				"fr": "Première version",
+				"it": "Versione iniziale",
+				"es": "Versión inicial",
+				"pl": "Pierwsze wydanie",
+				"zh-cn": "首次出版"
+			}
+		},
+		"titleLang": {
+			"en": "Motionblinds-smartblinds",
+			"de": "Bewegungsrollos-smartblinds",
+			"ru": "Жалюзи-умные жалюзи",
+			"pt": "Motionblinds-smartblinds",
+			"nl": "Motionblinds-smartblinds",
+			"fr": "Motionblinds-smartblinds",
+			"it": "Motionblinds-smartblinds",
+			"es": "Persianas móviles-persianas inteligentes",
+			"pl": "Motionblinds-smartblinds",
+			"zh-cn": "Motionblinds-smartblinds"
+		},
+		"desc": {
+			"en": "motionblinds",
+			"de": "Bewegungsjalousien",
+			"ru": "жалюзи",
+			"pt": "cortinas de movimento",
+			"nl": "bewegingsblinden",
+			"fr": "stores vénitiens",
+			"it": "persiane",
+			"es": "persianas",
+			"pl": "rolety ruchowe motion",
+			"zh-cn": "运动百叶窗"
+		},
+		"authors": [
+			"Vben <devel@velmeden.info>"
+		],
+		"keywords": [
+			"ioBroker",
+			"template",
+			"Smart Home",
+			"home automation"
+		],
+		"license": "MIT",
+		"platform": "Javascript/Node.js",
+		"icon": "motionblinds.png",
+		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/VBen/ioBroker.motionblinds/master/admin/motionblinds.png",
+		"readme": "https://github.com/VBen/ioBroker.motionblinds/blob/master/README.md",
+		"loglevel": "info",
+		"mode": "daemon",
+		"type": "iot-systems",
+		"compact": true,
+		"connectionType": "local",
+		"dataSource": "push",
+		"materialize": true,
+		"dependencies": [
+			{
+				"js-controller": ">=2.0.0"
+			}
+		]
+	},
+	"native": {
+		"option1": true,
+		"option2": "42"
+	},
+	"objects": [],
+	"instanceObjects": [
+		{
+			"_id": "info",
+			"type": "channel",
+			"common": {
+				"name": "Information"
+			},
+			"native": {}
+		},
+		{
+			"_id": "info.connection",
+			"type": "state",
+			"common": {
+				"role": "indicator.connected",
+				"name": "Device or service connected",
+				"type": "boolean",
+				"read": true,
+				"write": false,
+				"def": false
+			},
+			"native": {}
+		}
+	]
+}
