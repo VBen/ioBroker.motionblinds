@@ -5,7 +5,7 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway } from "motionblinds";
+import { MotionGateway, Report } from "motionblinds";
 
 
 // Load your modules here, e.g.:
@@ -13,7 +13,7 @@ import { MotionGateway } from "motionblinds";
 
 
 class Motionblinds extends utils.Adapter {
-	private gateway?: any;
+	private gateway?: MotionGateway;
 	private devices?: any;
 	public constructor(options: Partial<utils.AdapterOptions> = {}) {
 		super({
@@ -32,18 +32,26 @@ class Motionblinds extends utils.Adapter {
 	 */
 	private async onReady(): Promise<void> {
 		// Initialize your adapter here
-		
-		this.gateway = new MotionGateway();
-		this.gateway.token = this.config.token;
+
+
+		// this.gateway.token = this.config.token;
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
 		this.log.info("config token: " + this.config.token);
-/*
-		this.gateway.on('report', (report: string) => {
-			this.log.debug(report)
+		this.gateway = new MotionGateway({key: this.config.token, timeoutSec:500});
+		this.gateway.start();
+		this.gateway.getDeviceList();
+	
+		this.gateway.on("report", (report) => {
+			this.updateFromReport(report);
 		  })
-*/		
-
+		this.gateway.on("error", (err) => {
+			this.log.error("Error: " + JSON.stringify(err));
+		  })
+		this.gateway.on("heartbeat", (heartbeat) => {
+			this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
+		  })
+		
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
 
@@ -101,7 +109,7 @@ class Motionblinds extends utils.Adapter {
 	 */
 	private onUnload(callback: () => void): void {
 		try {
-			this.gateway.stop;
+			this.gateway?.stop();
 			// Here you must clear all timeouts or intervals that may still be active
 			// clearTimeout(timeout1);
 			// clearTimeout(timeout2);
@@ -158,7 +166,33 @@ class Motionblinds extends utils.Adapter {
 	// 		}
 	// 	}
 	// }
+	private updateFromReport(report: Report){
+		this.log.debug("Report: "+ JSON.stringify(report));
+		this.setObjectNotExists(report.mac, {
+			type: "channel",
+			common: {
+				name: report.mac,
+				role: "blind"
+			},
+			native: {
+				mac: report.mac,
+				deviceType: report.deviceType
+			}
+		});
+		this.setObjectNotExists(report.mac + ".position",{
+			type: "state",
+			common:{
+				name: "Position",
+				role: "blind",
+				type: "number",
+				read: true,
+				write: true
+			},
+			native:{}
+		});
+		this.setState(report.mac+".position",report.data.currentPosition);
 
+	}
 }
 
 if (require.main !== module) {
