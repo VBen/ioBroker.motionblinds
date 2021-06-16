@@ -11,7 +11,6 @@ import { MotionGateway, Report } from "motionblinds";
 // Load your modules here, e.g.:
 // import * as fs from "fs";
 
-
 class Motionblinds extends utils.Adapter {
 	private gateway?: MotionGateway;
 	private devices?: any;
@@ -38,10 +37,10 @@ class Motionblinds extends utils.Adapter {
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
 		this.log.info("config token: " + this.config.token);
-		this.gateway = new MotionGateway({key: this.config.token, timeoutSec:500});
+		this.gateway = new MotionGateway({key: this.config.token});
 		this.gateway.start();
-		this.gateway.getDeviceList();
-	
+		
+
 		this.gateway.on("report", (report) => {
 			this.updateFromReport(report);
 		  })
@@ -51,19 +50,20 @@ class Motionblinds extends utils.Adapter {
 		this.gateway.on("heartbeat", (heartbeat) => {
 			this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
 		  })
-		
+
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
+		this.gateway.getDeviceList();
 
-
-
+		this.subscribeStates("*.position");
+		
 
 		/*
 		For every state in the system there has to be also an object of type state
 		Here a simple template for a boolean variable named "testVariable"
 		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
 		*/
-		await this.setObjectNotExistsAsync("testVariable", {
+		/*await this.setObjectNotExistsAsync("testVariable", {
 			type: "state",
 			common: {
 				name: "testVariable",
@@ -73,10 +73,11 @@ class Motionblinds extends utils.Adapter {
 				write: true,
 			},
 			native: {},
-		});
-
+		});*/
+		/*const states = this.getStatesAsync("*.position");
+		this.log.silly("states:" + JSON.stringify(states));*/
 		// In order to get state updates, you need to subscribe to them. The following line adds a subscription for our variable we have created above.
-		this.subscribeStates("testVariable");
+		// this.subscribeStates("testVariable");
 		// You can also add a subscription for multiple states. The following line watches all states starting with "lights."
 		// this.subscribeStates("lights.*");
 		// Or, if you really must, you can also watch all states. Don't do this if you don't need to. Otherwise this will cause a lot of unnecessary load on the system:
@@ -87,7 +88,7 @@ class Motionblinds extends utils.Adapter {
 			you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
 		*/
 		// the variable testVariable is set to true as command (ack=false)
-		await this.setStateAsync("testVariable", true);
+		/*await this.setStateAsync("testVariable", true);
 
 		// same thing, but the value is flagged "ack"
 		// ack should be always set to true if the value is received from or acknowledged from the target system
@@ -101,7 +102,7 @@ class Motionblinds extends utils.Adapter {
 		this.log.info("check user admin pw iobroker: " + result);
 
 		result = await this.checkGroupAsync("admin", "admin");
-		this.log.info("check group user admin group admin: " + result);
+		this.log.info("check group user admin group admin: " + result);*/
 	}
 
 	/**
@@ -109,7 +110,7 @@ class Motionblinds extends utils.Adapter {
 	 */
 	private onUnload(callback: () => void): void {
 		try {
-			this.gateway?.stop();
+			if(this.gateway)this.gateway.stop();
 			// Here you must clear all timeouts or intervals that may still be active
 			// clearTimeout(timeout1);
 			// clearTimeout(timeout2);
@@ -144,6 +145,15 @@ class Motionblinds extends utils.Adapter {
 		if (state) {
 			// The state was changed
 			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
+			if (state.ack==false && id.search("position")>0){
+
+				this.log.info("MAC:" + this.getMacForID(id));
+				 this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ targetPosition : Number(state.val)})
+				 .then(() => function() {return})
+				 .catch((err) => function(err:any) {return});
+				
+			}
+
 		} else {
 			// The state was deleted
 			this.log.info(`state ${id} deleted`);
@@ -166,7 +176,11 @@ class Motionblinds extends utils.Adapter {
 	// 		}
 	// 	}
 	// }
-	private updateFromReport(report: Report){
+	private getMacForID(id:string):string{
+		const splitted_id:string[] = id.split(".");
+		return splitted_id[splitted_id.length-2];
+	}
+	private updateFromReport(report: Report):void{
 		this.log.debug("Report: "+ JSON.stringify(report));
 		this.setObjectNotExists(report.mac, {
 			type: "channel",
@@ -186,11 +200,25 @@ class Motionblinds extends utils.Adapter {
 				role: "blind",
 				type: "number",
 				read: true,
-				write: true
+				write: true,
+				unit: "%"
 			},
 			native:{}
 		});
-		this.setState(report.mac+".position",report.data.currentPosition);
+		this.setObjectNotExists(report.mac + ".batterylevel",{
+			type: "state",
+			common:{
+				name: "Batterylevel",
+				role: "blind",
+				type: "number",
+				read: true,
+				write: true,
+				unit: "%"
+			},
+			native:{}
+		});
+		this.setState(report.mac+".position",report.data.currentPosition ,  true);
+		this.setState(report.mac+".batterylevel",report.data.batteryLevel/10 ,  true);
 
 	}
 }
