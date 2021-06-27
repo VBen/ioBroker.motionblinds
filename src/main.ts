@@ -5,7 +5,7 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway, Report, BlindType,  ReadDeviceAck, DeviceType} from "motionblinds";
+import { MotionGateway, Report, BlindType,  ReadDeviceAck, DeviceType,  Operation, VoltageMode, LimitsState, WirelessMode} from "motionblinds";
 
 
 // Load your modules here, e.g.:
@@ -13,7 +13,6 @@ import { MotionGateway, Report, BlindType,  ReadDeviceAck, DeviceType} from "mot
 type DeviceData = {
 	devtype: DeviceType
 }
-
 
 class Motionblinds extends utils.Adapter {
 
@@ -88,7 +87,11 @@ class Motionblinds extends utils.Adapter {
 		this.log.debug(JSON.stringify(this.devices));
 
 		this.subscribeStates("*.position");
-
+		this.subscribeStates("*.fullup");
+		this.subscribeStates("*.fulldown");
+		this.subscribeStates("*.stop");
+		this.subscribeStates("*.device_query");
+		this.subscribeStates("*.angle");
 
 		/*
 		For every state in the system there has to be alDeviceType
@@ -115,19 +118,7 @@ class Motionblinds extends utils.Adapter {
 		// the variable testVariable is set to true as command (ack=false)
 		/*await this.setStateAsync("testVariable", true);
 
-		// same thing, but the value is flagged "ack"
-		// ack should be always set to true if the value is received from or acknowledged from the target system
-		await this.setStateAsync("testVariable", { val: true, ack: true });
-
-		// same thing, but the state is deleted after 30s (getState will return null afterwards)
-		await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
-
-		// examples for the checkPassword/checkGroup functions
-		let result = await this.checkPasswordAsync("admin", "iobroker");
-		this.log.info("check user admin pw iobroker: " + result);
-
-		result = await this.checkGroupAsync("admin", "admin");
-		this.log.info("check group user admin group admin: " + result);*/
+		// same thing, but the vaimport  * as os from "os";p user admin group admin: " + result);*/
 	}
 
 	/**
@@ -177,16 +168,41 @@ class Motionblinds extends utils.Adapter {
 		if (state) {
 			// The state was changed
 			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-			if (state.ack==false && id.search("position")>0){
+			let doUpdate = false;
+			const devicetype = this.devicemap.get(this.getMacForID(id))?.devtype;
+			if(devicetype){
+				if (state.ack==false && id.search("position")>0){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ targetPosition : Number(state.val)})
+				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+					doUpdate =true;
 
-				this.log.info("MAC:" + this.getMacForID(id));
-				 //await this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ operation: 5});
-				 await this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ targetPosition : Number(state.val)})
+				}else if (state.ack==false && id.search("angle")>0){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ targetAngle : Number(state.val)})
+				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+					doUpdate = true;
+
+				}else if  (state.ack==false && id.search("fullup")>0){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 1})
+				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+
+				} else if  (state.ack==false && id.search("fulldown")>0){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 0})
+				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+				} else if  (state.ack==false && id.search("stop")>0){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 2})
 				 .then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
 				 .catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
-
+				}
+				if(state.ack==false && doUpdate){
+					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 5})
+				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+				}
 			}
-
 		} else {
 			// The state was deleted
 			this.log.info(`state ${id} deleted`);
@@ -213,6 +229,7 @@ class Motionblinds extends utils.Adapter {
 		const splitted_id:string[] = id.split(".");
 		return splitted_id[splitted_id.length-2];
 	}
+
 	private updateFromReport(report: Report):void{
 		this.log.debug("Report: "+ JSON.stringify(report));
 		this.setObjectNotExists(report.mac, {
@@ -226,65 +243,96 @@ class Motionblinds extends utils.Adapter {
 				deviceType: report.deviceType
 			}
 		});
-		
-		
-		
-		this.setObjectNotExists(report.mac + ".position",{
-			type: "state",
-			common:{
-				name: "Position",
-				role: "blind",
-				type: "number",
-				read: true,
-				write: true,
-				unit: "%"
-			},
-			native:{}
-		});
-		this.setObjectNotExists(report.mac + ".batterylevel",{
-			type: "state",
-			common:{
-				name: "Batterylevel",
-				role: "blind",
-				type: "number",
-				read: true,
-				write: true,
-				unit: "%"
-			},
-			native:{}
-		});
-		this.setObjectNotExists(report.mac + ".BlindType",{
-			type: "state",
-			common:{
-				name: "BlindType",
-				role: "blind",
-				type: "string",
-				read: true,
-				write: false
-			},
-			native:{}
-		});
-		this.setObjectNotExists(report.mac + ".RSSI",{
-			type: "state",
-			common:{
-				name: "RSSI",
-				role: "blind",
-				type: "number",
-				read: true,
-				write: false,
-				unit: "dB"
-			},
-			native:{}
-		});
+		const data = report.data;
+		Object.keys(data).forEach((key,idx) => {
+			let value:any = Object.values(data)[idx];
 
-		this.setState(report.mac+".BlindType", BlindType[report.data.type].toString(),true);
-		this.setState(report.mac+".position",report.data.currentPosition ,  true);
-		this.setState(report.mac+".batterylevel",report.data.batteryLevel/10 ,  true);
+			let dp = report.mac + "." + key;
+			let name:string = key;
+			let unit = "";
+			let type:any = "string";
+			let write = false;
+
+			switch(key){
+				case "type":
+					name = "Blind type";
+					value = BlindType[value].toString();
+					break;
+				case "operation":
+					name = "Current operation";
+					value = Operation[value].toString();
+					break;
+				case "currentAngle":
+					dp = dp = report.mac + ".angle";
+					name = "Shutter Angle";
+					type = "number";
+					unit = "°"
+					write = true;
+					break;
+				case "voltageMode":
+					name = "Motor type"
+					value = VoltageMode[value].toString();
+					break;
+				case "currentState":
+					name = "Current state";
+					value = LimitsState[value].toString();
+					break;
+				case "wirelessMode":
+					name = "Wireless type";
+					value = WirelessMode[value].toString();
+					break;
+				case "RSSI":
+					type = "number";
+					break;
+				case "currentPosition":
+					dp = dp = report.mac + ".position";
+					name ="Position";
+					type = "number";
+					write = true;
+					unit = "%";
+					break;
+				case "batteryLevel":
+					name = "Battery Level";
+					unit = "%";
+					type = "number"
+					value = value/10;
+					break;
+
+				default:
+			}
 
 
+			this.setObjectNotExists(dp, {
+				type: "state",
+				common:{
+					name: name,
+					role: "blind",
+					type: type,
+					read: true,
+					write: write,
+					unit: unit
+				},
+				native:{}
+
+			});
+			this.setState(dp, value,true);
+		});
+		const btns = ["fullup","fulldown","stop","device_query"];
+		for (const btn of btns){
+			this.setObjectNotExists(report.mac + "."+ btn,{
+				type: "state",
+				common:{
+					name: btn,
+					role: "button",
+					type: "boolean",
+					read: false,
+					write: true,
+				},native:{}
+			});
+
+		}
 	}
 }
-
 if (require.main !== module) {
 	// Export the constructor in compact mode
 	module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new Motionblinds(options);
