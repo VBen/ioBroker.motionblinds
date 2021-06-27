@@ -5,15 +5,23 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway, Report } from "motionblinds";
+import { MotionGateway, Report, BlindType,  ReadDeviceAck, DeviceType} from "motionblinds";
 
 
 // Load your modules here, e.g.:
 // import * as fs from "fs";
+type DeviceData = {
+	devtype: DeviceType
+}
+
 
 class Motionblinds extends utils.Adapter {
+
 	private gateway?: MotionGateway;
-	private devices?: any;
+	private devices: void | ReadDeviceAck[]=[];
+	private devicemap= new Map<string, DeviceData>();
+
+
 	public constructor(options: Partial<utils.AdapterOptions> = {}) {
 		super({
 			...options,
@@ -37,9 +45,11 @@ class Motionblinds extends utils.Adapter {
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
 		this.log.info("config token: " + this.config.token);
-		this.gateway = new MotionGateway({key: this.config.token});
+		// Reset the connection indicator during startup
+		this.setState("info.connection", false, true);
+		this.gateway =  new MotionGateway({key: this.config.token});
+
 		this.gateway.start();
-		
 
 		this.gateway.on("report", (report) => {
 			this.updateFromReport(report);
@@ -53,20 +63,35 @@ class Motionblinds extends utils.Adapter {
 
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
-		this.gateway.getDeviceList();
+		this.log.info("Fetching device list");
+		this.devices = await this.gateway.readAllDevices()
+			.catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: "+ JSON.stringify(reason)));
+		if (this.devices) {
+			this.setState("info.connection", true, true);
+			this.log.info("Devices: " + JSON.stringify(this.devices));
+			for(const dev of this.devices){
+				this.devicemap.set(dev.mac,{devtype: dev.deviceType});
+
+			}
+
+		}
+		for(const [mac, data] of this.devicemap){
+
+			await this.gateway.readDevice(mac, data.devtype)
+				.then((value) =>  {
+					const reportdata = {msgType: "Report", data: value.data, mac: mac, deviceType: data.devtype } as Report;
+					this.updateFromReport(reportdata);
+				})
+				.catch((err)=> {return err}
+				)
+		}
+		this.log.debug(JSON.stringify(this.devices));
 
 		this.subscribeStates("*.position");
-		
+
 
 		/*
-		For every state in the system there has to be also an object of type state
-		Here a simple template for a boolean variable named "testVariable"
-		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
-		*/
-		/*await this.setObjectNotExistsAsync("testVariable", {
-			type: "state",
-			common: {
-				name: "testVariable",
+		For every state in the system there has to be alDeviceType
 				type: "boolean",
 				role: "indicator",
 				read: true,
@@ -109,8 +134,13 @@ class Motionblinds extends utils.Adapter {
 	 * Is called when adapter shuts down - callback has to be called under any circumstances!
 	 */
 	private onUnload(callback: () => void): void {
+		this.log.info("Shutting down adapter");
 		try {
-			if(this.gateway)this.gateway.stop();
+			if(this.gateway){
+				if(this.gateway.sendSocket)this.gateway.sendSocket.close();
+				if(this.gateway.recvSocket)this.gateway.recvSocket.close();
+				this.gateway.stop();
+			}
 			// Here you must clear all timeouts or intervals that may still be active
 			// clearTimeout(timeout1);
 			// clearTimeout(timeout2);
@@ -122,6 +152,7 @@ class Motionblinds extends utils.Adapter {
 			callback();
 		}
 	}
+
 
 	// If you need to react to object changes, uncomment the following block and the corresponding line in the constructor.
 	// You also need to subscribe to the objects with `this.subscribeObjects`, similar to `this.subscribeStates`.
@@ -141,17 +172,19 @@ class Motionblinds extends utils.Adapter {
 	/**
 	 * Is called if a subscribed state changes
 	 */
-	private onStateChange(id: string, state: ioBroker.State | null | undefined): void {
+	private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
+
 		if (state) {
 			// The state was changed
 			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
 			if (state.ack==false && id.search("position")>0){
 
 				this.log.info("MAC:" + this.getMacForID(id));
-				 this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ targetPosition : Number(state.val)})
-				 .then(() => function() {return})
-				 .catch((err) => function(err:any) {return});
-				
+				 //await this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ operation: 5});
+				 await this.gateway?.writeDevice(this.getMacForID(id),"10000000",{ targetPosition : Number(state.val)})
+				 .then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
+				 .catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+
 			}
 
 		} else {
@@ -193,6 +226,9 @@ class Motionblinds extends utils.Adapter {
 				deviceType: report.deviceType
 			}
 		});
+		
+		
+		
 		this.setObjectNotExists(report.mac + ".position",{
 			type: "state",
 			common:{
@@ -217,8 +253,34 @@ class Motionblinds extends utils.Adapter {
 			},
 			native:{}
 		});
+		this.setObjectNotExists(report.mac + ".BlindType",{
+			type: "state",
+			common:{
+				name: "BlindType",
+				role: "blind",
+				type: "string",
+				read: true,
+				write: false
+			},
+			native:{}
+		});
+		this.setObjectNotExists(report.mac + ".RSSI",{
+			type: "state",
+			common:{
+				name: "RSSI",
+				role: "blind",
+				type: "number",
+				read: true,
+				write: false,
+				unit: "dB"
+			},
+			native:{}
+		});
+
+		this.setState(report.mac+".BlindType", BlindType[report.data.type].toString(),true);
 		this.setState(report.mac+".position",report.data.currentPosition ,  true);
 		this.setState(report.mac+".batterylevel",report.data.batteryLevel/10 ,  true);
+
 
 	}
 }

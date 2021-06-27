@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^2.5.0",
-    "motionblinds": "^2.0.0"
+    "motionblinds": "github:VBen/node-motionblinds"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^1.10.0",
