@@ -10,3 +10,4 @@ updates:
   assignees:
   - VBen
   versioning-strategy: increase
+  target-branch: "develop"

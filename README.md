@@ -13,7 +13,7 @@
 
 ## motionblinds adapter for ioBroker
 
-Controls bilnd motors from MotionBlinds.
+Controls blind motors from MotionBlinds.
 
 Needed Components:
 - Motionblinds bridge CMD-01
