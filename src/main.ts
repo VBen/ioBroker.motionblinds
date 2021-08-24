@@ -5,7 +5,7 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway, Report, BlindType,  ReadDeviceAck, DeviceType,  Operation, VoltageMode, LimitsState, WirelessMode} from "motionblinds";
+import { MotionGateway, Report, BlindType, ReadDeviceAck, DeviceType, Operation, VoltageMode, LimitsState, WirelessMode } from "motionblinds";
 
 
 // Load your modules here, e.g.:
@@ -17,8 +17,8 @@ type DeviceData = {
 class Motionblinds extends utils.Adapter {
 
 	private gateway?: MotionGateway;
-	private devices: void | ReadDeviceAck[]=[];
-	private devicemap= new Map<string, DeviceData>();
+	private devices: void | ReadDeviceAck[] = [];
+	private devicemap = new Map<string, DeviceData>();
 
 
 	public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -38,50 +38,46 @@ class Motionblinds extends utils.Adapter {
 	 */
 	private async onReady(): Promise<void> {
 		// Initialize your adapter here
-
-
-		// this.gateway.token = this.config.token;
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
 		this.log.info("config token: " + this.config.token);
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
-		this.gateway =  new MotionGateway({key: this.config.token});
+		this.gateway = new MotionGateway({ key: this.config.token });
 
 		this.gateway.start();
 
 		this.gateway.on("report", (report) => {
 			this.updateFromReport(report);
-		  })
+		})
 		this.gateway.on("error", (err) => {
 			this.log.error("Error: " + JSON.stringify(err));
-		  })
+		})
 		this.gateway.on("heartbeat", (heartbeat) => {
 			this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
-		  })
+		})
 
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
 		this.log.info("Fetching device list");
 		this.devices = await this.gateway.readAllDevices()
-			.catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: "+ JSON.stringify(reason)));
+			.catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason)));
 		if (this.devices) {
 			this.setState("info.connection", true, true);
 			this.log.info("Devices: " + JSON.stringify(this.devices));
-			for(const dev of this.devices){
-				this.devicemap.set(dev.mac,{devtype: dev.deviceType});
-
+			for (const dev of this.devices) {
+				this.devicemap.set(dev.mac, { devtype: dev.deviceType });
 			}
 
 		}
-		for(const [mac, data] of this.devicemap){
+		for (const [mac, data] of this.devicemap) {
 
 			await this.gateway.readDevice(mac, data.devtype)
-				.then((value) =>  {
-					const reportdata = {msgType: "Report", data: value.data, mac: mac, deviceType: data.devtype } as Report;
+				.then((value) => {
+					const reportdata = { msgType: "Report", data: value.data, mac: mac, deviceType: data.devtype } as Report;
 					this.updateFromReport(reportdata);
 				})
-				.catch((err)=> {return err}
+				.catch((err) => { return err }
 				)
 		}
 		this.log.debug(JSON.stringify(this.devices));
@@ -127,9 +123,9 @@ class Motionblinds extends utils.Adapter {
 	private onUnload(callback: () => void): void {
 		this.log.info("Shutting down adapter");
 		try {
-			if(this.gateway){
-				if(this.gateway.sendSocket)this.gateway.sendSocket.close();
-				if(this.gateway.recvSocket)this.gateway.recvSocket.close();
+			if (this.gateway) {
+				if (this.gateway.sendSocket) this.gateway.sendSocket.close();
+				if (this.gateway.recvSocket) this.gateway.recvSocket.close();
 				this.gateway.stop();
 			}
 			// Here you must clear all timeouts or intervals that may still be active
@@ -170,37 +166,37 @@ class Motionblinds extends utils.Adapter {
 			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
 			let doUpdate = false;
 			const devicetype = this.devicemap.get(this.getMacForID(id))?.devtype;
-			if(devicetype){
-				if (state.ack==false && id.search("position")>0){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ targetPosition : Number(state.val)})
-				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
-					doUpdate =true;
-
-				}else if (state.ack==false && id.search("angle")>0){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ targetAngle : Number(state.val)})
-				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+			if (devicetype) {
+				if (state.ack == false && id.search("position") > 0) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { targetPosition: Number(state.val) })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 					doUpdate = true;
 
-				}else if  (state.ack==false && id.search("fullup")>0){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 1})
-				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+				} else if (state.ack == false && id.search("angle") > 0) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { targetAngle: Number(state.val) })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
+					doUpdate = true;
 
-				} else if  (state.ack==false && id.search("fulldown")>0){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 0})
-				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
-				} else if  (state.ack==false && id.search("stop")>0){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 2})
-				 .then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 .catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+				} else if (state.ack == false && id.search("fullup") > 0) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 1 })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
+
+				} else if (state.ack == false && id.search("fulldown") > 0) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 0 })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
+				} else if (state.ack == false && id.search("stop") > 0) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 2 })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
-				if(state.ack==false && doUpdate){
-					await this.gateway?.writeDevice(this.getMacForID(id),devicetype,{ operation: 5})
-				 	.then((value) => {this.log.info("got ack: "+ JSON.stringify(value))})
-				 	.catch((err) => {this.log.error("got error while writing: "+JSON.stringify(err))});
+				if (state.ack == false && doUpdate) {
+					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 5 })
+						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
 			}
 		} else {
@@ -225,13 +221,13 @@ class Motionblinds extends utils.Adapter {
 	// 		}
 	// 	}
 	// }
-	private getMacForID(id:string):string{
-		const splitted_id:string[] = id.split(".");
-		return splitted_id[splitted_id.length-2];
+	private getMacForID(id: string): string {
+		const splitted_id: string[] = id.split(".");
+		return splitted_id[splitted_id.length - 2];
 	}
 
-	private updateFromReport(report: Report):void{
-		this.log.debug("Report: "+ JSON.stringify(report));
+	private updateFromReport(report: Report): void {
+		this.log.debug("Report: " + JSON.stringify(report));
 		this.setObjectNotExists(report.mac, {
 			type: "channel",
 			common: {
@@ -244,16 +240,16 @@ class Motionblinds extends utils.Adapter {
 			}
 		});
 		const data = report.data;
-		Object.keys(data).forEach((key,idx) => {
-			let value:any = Object.values(data)[idx];
+		Object.keys(data).forEach((key, idx) => {
+			let value: any = Object.values(data)[idx];
 
 			let dp = report.mac + "." + key;
-			let name:string = key;
+			let name: string = key;
 			let unit = "";
-			let type:any = "string";
+			let type: any = "string";
 			let write = false;
 
-			switch(key){
+			switch (key) {
 				case "type":
 					name = "Blind type";
 					value = BlindType[value].toString();
@@ -286,7 +282,7 @@ class Motionblinds extends utils.Adapter {
 					break;
 				case "currentPosition":
 					dp = dp = report.mac + ".position";
-					name ="Position";
+					name = "Position";
 					type = "number";
 					write = true;
 					unit = "%";
@@ -295,7 +291,7 @@ class Motionblinds extends utils.Adapter {
 					name = "Battery Level";
 					unit = "%";
 					type = "number"
-					value = value/10;
+					value = value / 10;
 					break;
 
 				default:
@@ -304,7 +300,7 @@ class Motionblinds extends utils.Adapter {
 
 			this.setObjectNotExists(dp, {
 				type: "state",
-				common:{
+				common: {
 					name: name,
 					role: "blind",
 					type: type,
@@ -312,22 +308,22 @@ class Motionblinds extends utils.Adapter {
 					write: write,
 					unit: unit
 				},
-				native:{}
+				native: {}
 
 			});
-			this.setState(dp, value,true);
+			this.setState(dp, value, true);
 		});
-		const btns = ["fullup","fulldown","stop","device_query"];
-		for (const btn of btns){
-			this.setObjectNotExists(report.mac + "."+ btn,{
+		const btns = ["fullup", "fulldown", "stop", "device_query"];
+		for (const btn of btns) {
+			this.setObjectNotExists(report.mac + "." + btn, {
 				type: "state",
-				common:{
+				common: {
 					name: btn,
 					role: "button",
 					type: "boolean",
 					read: false,
 					write: true,
-				},native:{}
+				}, native: {}
 			});
 
 		}
