@@ -40,7 +40,7 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 	### **WORK IN PROGRESS**
 -->
 
-### **WORK IN PROGRESS**
+### 0.0.2-beta.0 (2021-08-25)
 * (Vben) initial release
 
 ## License
