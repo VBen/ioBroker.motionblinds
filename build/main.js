@@ -4,7 +4,11 @@
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -48,9 +52,14 @@ class Motionblinds extends utils.Adapter {
         // The adapters config (in the instance object everything under the attribute "native") is accessible via
         // this.config:
         this.log.info("config token: " + this.config.token);
+        if (this.config.timeout < 3 || !this.config.timeout) {
+            this.config.timeout = 0;
+            this.log.error("Timout was lower than 3sec or undefined, value was resetted to 3sec, please correct your adapter configuration");
+        }
+        this.log.info("using timeout:" + this.config.timeout);
         // Reset the connection indicator during startup
         this.setState("info.connection", false, true);
-        this.gateway = new motionblinds_1.MotionGateway({ key: this.config.token });
+        this.gateway = new motionblinds_1.MotionGateway({ key: this.config.token, timeoutSec: this.config.timeout });
         this.gateway.start();
         this.gateway.on("report", (report) => {
             this.updateFromReport(report);
@@ -68,7 +77,7 @@ class Motionblinds extends utils.Adapter {
             .catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason)));
         if (this.devices) {
             this.setState("info.connection", true, true);
-            this.log.info("Devices: " + JSON.stringify(this.devices));
+            this.log.debug("Devices: " + JSON.stringify(this.devices));
             for (const dev of this.devices) {
                 this.devicemap.set(dev.mac, { devtype: dev.deviceType });
             }
@@ -287,8 +296,7 @@ class Motionblinds extends utils.Adapter {
                     unit: unit
                 },
                 native: {}
-            });
-            this.setState(dp, value, true);
+            }, () => { this.setState(dp, value, true); });
         });
         const btns = ["fullup", "fulldown", "stop", "device_query"];
         for (const btn of btns) {
