@@ -41,10 +41,17 @@ class Motionblinds extends utils.Adapter {
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
 		this.log.info("config token: " + this.config.token);
+
+		if(this.config.timeout<3 || !this.config.timeout){
+			this.config.timeout = 0
+			this.log.error("Timout was lower than 3sec or undefined, value was resetted to 3sec, please correct your adapter configuration")
+		}
+
+		this.log.info("using timeout:" + this.config.timeout);
+
 		// Reset the connection indicator during startup
 		this.setState("info.connection", false, true);
-		this.gateway = new MotionGateway({ key: this.config.token });
-
+		this.gateway = new MotionGateway({ key: this.config.token, timeoutSec: this.config.timeout });
 		this.gateway.start();
 
 		this.gateway.on("report", (report) => {

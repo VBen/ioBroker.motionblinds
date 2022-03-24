@@ -5,6 +5,7 @@ declare global {
 	namespace ioBroker {
 		interface AdapterConfig {
 			token: string;
+			timeout: number;
 		}
 	}
 }
