@@ -71,7 +71,7 @@ class Motionblinds extends utils.Adapter {
 			.catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason)));
 		if (this.devices) {
 			this.setState("info.connection", true, true);
-			this.log.info("Devices: " + JSON.stringify(this.devices));
+			this.log.debug("Devices: " + JSON.stringify(this.devices));
 			for (const dev of this.devices) {
 				this.devicemap.set(dev.mac, { devtype: dev.deviceType });
 			}
