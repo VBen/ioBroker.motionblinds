@@ -309,9 +309,10 @@ class Motionblinds extends utils.Adapter {
 					unit: unit
 				},
 				native: {}
+			},() => {this.setState(dp, value, true);}
+			);
 
-			});
-			this.setState(dp, value, true);
+
 		});
 		const btns = ["fullup", "fulldown", "stop", "device_query"];
 		for (const btn of btns) {
