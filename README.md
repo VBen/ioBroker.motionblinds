@@ -39,7 +39,7 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.2.0 (2022-03-25)
 * (Vben) added timeout support
 * (VBen) fixed warnings during new state creation
 * (VBen) updated dependencies
