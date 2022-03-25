@@ -5,7 +5,7 @@
 [![Downloads](https://img.shields.io/npm/dm/iobroker.motionblinds.svg)](https://www.npmjs.com/package/iobroker.motionblinds)
 ![Number of Installations (latest)](https://iobroker.live/badges/motionblinds-installed.svg)
 ![Number of Installations (stable)](https://iobroker.live/badges/motionblinds-stable.svg)
-[![Dependency Status](https://img.shields.io/david/VBen/iobroker.motionblinds.svg)](https://david-dm.org/VBen/iobroker.motionblinds)
+
 
 [![NPM](https://nodei.co/npm/iobroker.motionblinds.png?downloads=true)](https://nodei.co/npm/iobroker.motionblinds/)
 
