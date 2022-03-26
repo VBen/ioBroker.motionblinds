@@ -1,26 +1,37 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.isArray = exports.isObject = void 0;
-/**
- * Tests whether the given variable is a real object and not an Array
- * @param it The variable to test
- */
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var tools_exports = {};
+__export(tools_exports, {
+  isArray: () => isArray,
+  isObject: () => isObject
+});
+module.exports = __toCommonJS(tools_exports);
 function isObject(it) {
-    // This is necessary because:
-    // typeof null === 'object'
-    // typeof [] === 'object'
-    // [] instanceof Object === true
-    return Object.prototype.toString.call(it) === "[object Object]";
+  return Object.prototype.toString.call(it) === "[object Object]";
 }
-exports.isObject = isObject;
-/**
- * Tests whether the given variable is really an Array
- * @param it The variable to test
- */
 function isArray(it) {
-    if (Array.isArray != null)
-        return Array.isArray(it);
-    return Object.prototype.toString.call(it) === "[object Array]";
+  if (Array.isArray != null)
+    return Array.isArray(it);
+  return Object.prototype.toString.call(it) === "[object Array]";
 }
-exports.isArray = isArray;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  isArray,
+  isObject
+});
 //# sourceMappingURL=tools.js.map

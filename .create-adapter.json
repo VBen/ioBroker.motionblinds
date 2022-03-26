@@ -31,5 +31,7 @@
 	"license": "MIT License",
 	"ci": "gh-actions",
 	"dependabot": "yes",
-	"creatorVersion": "1.34.0"
+	"creatorVersion": "2.1.0",
+	"i18n": "words.js",
+	"defaultBranch": "master"
 }

@@ -1,1 +1,7 @@
-{"version":3,"file":"tools.js","sourceRoot":"","sources":["../../src/lib/tools.ts"],"names":[],"mappings":";;;AAEA;;;GAGG;AACH,SAAgB,QAAQ,CAAC,EAAW;IACnC,6BAA6B;IAC7B,2BAA2B;IAC3B,yBAAyB;IACzB,gCAAgC;IAChC,OAAO,MAAM,CAAC,SAAS,CAAC,QAAQ,CAAC,IAAI,CAAC,EAAE,CAAC,KAAK,iBAAiB,CAAC;AACjE,CAAC;AAND,4BAMC;AAED;;;GAGG;AACH,SAAgB,OAAO,CAAC,EAAW;IAClC,IAAI,KAAK,CAAC,OAAO,IAAI,IAAI;QAAE,OAAO,KAAK,CAAC,OAAO,CAAC,EAAE,CAAC,CAAC;IACpD,OAAO,MAAM,CAAC,SAAS,CAAC,QAAQ,CAAC,IAAI,CAAC,EAAE,CAAC,KAAK,gBAAgB,CAAC;AAChE,CAAC;AAHD,0BAGC"}
+{
+  "version": 3,
+  "sources": ["../../src/lib/tools.ts"],
+  "sourcesContent": ["//import axios from \"axios\";\r\n\r\n/**\r\n * Tests whether the given variable is a real object and not an Array\r\n * @param it The variable to test\r\n */\r\nexport function isObject(it: unknown): it is Record<string, any> {\r\n\t// This is necessary because:\r\n\t// typeof null === 'object'\r\n\t// typeof [] === 'object'\r\n\t// [] instanceof Object === true\r\n\treturn Object.prototype.toString.call(it) === \"[object Object]\";\r\n}\r\n\r\n/**\r\n * Tests whether the given variable is really an Array\r\n * @param it The variable to test\r\n */\r\nexport function isArray(it: unknown): it is any[] {\r\n\tif (Array.isArray != null) return Array.isArray(it);\r\n\treturn Object.prototype.toString.call(it) === \"[object Array]\";\r\n}\r\n\r\n\r\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAMO,kBAAkB,IAAwC;AAKhE,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;AAMO,iBAAiB,IAA0B;AACjD,MAAI,MAAM,WAAW;AAAM,WAAO,MAAM,QAAQ,EAAE;AAClD,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;",
+  "names": []
+}
