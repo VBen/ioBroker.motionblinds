@@ -40,7 +40,12 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
-* (Vben) fixed transaltions
+* (Vben) improved heartbeat message parsing
+* (Vben) automatic device refresh after command sending
+* (Vben) better logging
+* (Vben) fixed info.connection state
+* (Vben) code cleanup
+* (Vben) fixed translations
 * (Vben) switched to new release script version
 
 ### 0.2.0 (2022-03-25)

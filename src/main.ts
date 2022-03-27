@@ -5,7 +5,7 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway, Report, BlindType, ReadDeviceAck, DeviceType, Operation, VoltageMode, LimitsState, WirelessMode, Heartbeat } from "motionblinds";
+import { MotionGateway, Report, BlindType, ReadDeviceAck, DeviceType, Operation, VoltageMode, LimitsState, WirelessMode, Heartbeat, WriteDeviceAck, DEVICE_TYPE_GATEWAY } from "motionblinds";
 
 
 // Load your modules here, e.g.:
@@ -19,6 +19,14 @@ class Motionblinds extends utils.Adapter {
 	private gateway?: MotionGateway;
 	private devices: void | ReadDeviceAck[] = [];
 	private devicemap = new Map<string, DeviceData>();
+	private hbTimeout = 75; // default timing for heartbeat messages: 60s
+	private refreshInterval = 43200; // 12hours refresh for getting battery states from devices
+	private missedHeartbeats = 0;
+	private maxMissedHeartbeats = 4; //maximum middes hearbeats before assuming a lost connection
+	private heartbeatTimeout!: ioBroker.Timeout;
+	private queryDevicesInterval!: ioBroker.Interval ;
+
+
 
 
 	public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -26,10 +34,9 @@ class Motionblinds extends utils.Adapter {
 			...options,
 			name: "motionblinds",
 		});
+
 		this.on("ready", this.onReady.bind(this));
 		this.on("stateChange", this.onStateChange.bind(this));
-		// this.on("objectChange", this.onObjectChange.bind(this));
-		// this.on("message", this.onMessage.bind(this));
 		this.on("unload", this.onUnload.bind(this));
 	}
 
@@ -38,8 +45,6 @@ class Motionblinds extends utils.Adapter {
 	 */
 	private async onReady(): Promise<void> {
 		// Initialize your adapter here
-		// The adapters config (in the instance object everything under the attribute "native") is accessible via
-		// this.config:
 		this.log.info("config token: " + this.config.token);
 
 		if(this.config.timeout<3 || !this.config.timeout){
@@ -50,7 +55,17 @@ class Motionblinds extends utils.Adapter {
 		this.log.info("using timeout:" + this.config.timeout);
 
 		// Reset the connection indicator during startup
-		this.setState("info.connection", false, true);
+		this.setState("info.connection",{val:false, ack:true});
+		this.setObjectNotExists("info.missingheartbeat", {
+			type: "state",
+			common: {
+				name: "Missed Hearbeats",
+				role: "counter",
+				type: "number",
+				read: false,
+				write: true,
+			}, native: {}
+		},() => {this.setState("info.missingheartbeat", this.missedHeartbeats, true)});
 		this.gateway = new MotionGateway({ key: this.config.token, timeoutSec: this.config.timeout });
 		this.gateway.start();
 
@@ -64,9 +79,6 @@ class Motionblinds extends utils.Adapter {
 			this.processHeartbeat(heartbeat);
 		})
 
-		// Reset the connection indicator during startup
-		this.setState("info.connection",{val:false, ack:true});
-
 		await this.gateway?.readAllDevices()
 			.catch((reason) => {this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason))})
 			.then((deviceData) => {this.processDeviceList(deviceData);});
@@ -78,33 +90,11 @@ class Motionblinds extends utils.Adapter {
 		this.subscribeStates("*.device_query");
 		this.subscribeStates("*.angle");
 
-
-		/*
-		For every state in the system there has to be alDeviceType
-				type: "boolean",
-				role: "indicator",
-				read: true,
-				write: true,
-			},
-			native: {},
-		});*/
-		/*const states = this.getStatesAsync("*.position");
-		this.log.silly("states:" + JSON.stringify(states));*/
-		// In order to get state updates, you need to subscribe to them. The following line adds a subscription for our variable we have created above.
-		// this.subscribeStates("testVariable");
-		// You can also add a subscription for multiple states. The following line watches all states starting with "lights."
-		// this.subscribeStates("lights.*");
-		// Or, if you really must, you can also watch all states. Don't do this if you don't need to. Otherwise this will cause a lot of unnecessary load on the system:
-		// this.subscribeStates("*");
-
-		/*
-			setState examples
-			you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
-		*/
-		// the variable testVariable is set to true as command (ack=false)
-		/*await this.setStateAsync("testVariable", true);
-
-		// same thing, but the vaimport  * as os from "os";p user admin group admin: " + result);*/
+		this.heartbeatTimeout = this.setTimeout(()=> this.hbTimeoutExpired(),this.hbTimeout*1000);
+		this.queryDevicesInterval = this.setInterval(()=>{
+			this.log.debug("auto refresh started")
+			this.refreshDevices()
+		},this.refreshInterval*1000);
 	}
 
 	/**
@@ -119,10 +109,10 @@ class Motionblinds extends utils.Adapter {
 				this.gateway.stop();
 			}
 			// Here you must clear all timeouts or intervals that may still be active
-			// clearTimeout(timeout1);
+			this.clearTimeout(this.heartbeatTimeout);
 			// clearTimeout(timeout2);
 			// ...cxyc
-			// clearInterval(interval1);
+			this.clearInterval(this.queryDevicesInterval);
 
 			callback();
 		} catch (e) {
@@ -131,66 +121,51 @@ class Motionblinds extends utils.Adapter {
 	}
 
 
-	// If you need to react to object changes, uncomment the following block and the corresponding line in the constructor.
-	// You also need to subscribe to the objects with `this.subscribeObjects`, similar to `this.subscribeStates`.
-	// /**
-	//  * Is called if a subscribed object changes
-	//  */
-	// private onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
-	// 	if (obj) {
-	// 		// The object was changed
-	// 		this.log.info(`object ${id} changed: ${JSON.stringify(obj)}`);
-	// 	} else {
-	// 		// The object was deleted
-	// 		this.log.info(`object ${id} deleted`);
-	// 	}
-	// }
 
-	/**
-	 * Is called if a subscribed state changes
-	 */
 	private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
-
+		/**
+		 * Is called if a subscribed state changes
+	 	*/
 		if (state) {
 			// The state was changed
-			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-			let doUpdate = false;
+			if(state.ack == false){
+				this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
+			}
 			const devicetype = this.devicemap.get(this.getMacForID(id))?.devtype;
 			if (devicetype) {
 				if (state.ack == false && id.search("position") > 0) {
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { targetPosition: Number(state.val) })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => {this.updateFromReport(value)	})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
-					doUpdate = true;
-
 				} else if (state.ack == false && id.search("angle") > 0) {
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { targetAngle: Number(state.val) })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
-					doUpdate = true;
-
 				} else if (state.ack == false && id.search("fullup") > 0) {
+					this.setStateAsync(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 1 })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
-
 				} else if (state.ack == false && id.search("fulldown") > 0) {
+					this.setStateAsync(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 0 })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				} else if (state.ack == false && id.search("stop") > 0) {
+					this.setStateAsync(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 2 })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => {this.updateFromReport(value) })
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
-
-				if (state.ack == false && doUpdate) {
+				if (state.ack == false) {
+					this.setStateAsync(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 5 })
-						.then((value) => { this.log.info("got ack: " + JSON.stringify(value)) })
+						.then((value) => { this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
 			}
 			if (state.ack == false && id.search("refreshDevs") > 0){
+				this.setStateAsync(id,false,true)
 				this.log.info("Device refresh was triggered")
 				await this.gateway?.readAllDevices()
 					.catch((reason) => {this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason))})
@@ -202,29 +177,20 @@ class Motionblinds extends utils.Adapter {
 		}
 	}
 
-	// If you need to accept messages in your adapter, uncomment the following block and the corresponding line in the constructor.
-	// /**
-	//  * Some message was sent to this instance over message box. Used by email, pushover, text2speech, ...
-	//  * Using this method requires "common.messagebox" property to be set to true in io-package.json
-	//  */
-	// private onMessage(obj: ioBroker.Message): void {
-	// 	if (typeof obj === "object" && obj.message) {
-	// 		if (obj.command === "send") {
-	// 			// e.g. send email or pushover or whatever
-	// 			this.log.info("send command");
-
-	// 			// Send response in callback if required
-	// 			if (obj.callback) this.sendTo(obj.from, obj.command, "Message received", obj.callback);
-	// 		}
-	// 	}
-	// }
 	private getMacForID(id: string): string {
+		/*extracts the mac from given id */
 		const splitted_id: string[] = id.split(".");
 		return splitted_id[splitted_id.length - 2];
 	}
 
-	private updateFromReport(report: Report): void {
-		this.log.debug("Report: " + JSON.stringify(report));
+	private updateFromReport(report: Report | WriteDeviceAck): void {
+		/* updates and creates devices from device Reports and  WriteDeviceAck Messegaes*/
+		if(report.deviceType == DEVICE_TYPE_GATEWAY){
+			return;
+		}
+		this.log.debug("Parsing Message: " + JSON.stringify(report));
+
+
 		this.setObjectNotExists(report.mac, {
 			type: "channel",
 			common: {
@@ -322,14 +288,30 @@ class Motionblinds extends utils.Adapter {
 					read: false,
 					write: true,
 				}, native: {}
-			});
+			},() => {this.setState(report.mac + "." + btn, false, true)}
+			);
 
 		}
 
 	}
 	private processHeartbeat(heartbeat: Heartbeat): void {
+		/* processes received hearbeat messages and set info.connction to true after receiving */
 		this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
-
+		this.log.debug("Resetting heartbeat timeout")
+		clearTimeout(this.heartbeatTimeout)
+		this.heartbeatTimeout = this.setTimeout(()=>this.hbTimeoutExpired(),this.hbTimeout*1000);
+		this.missedHeartbeats = 0
+		this.setObjectNotExists("info.missingheartbeat", {
+			type: "state",
+			common: {
+				name: "Missed Hearbeats",
+				role: "counter",
+				type: "number",
+				read: false,
+				write: true,
+			}, native: {}
+		},() => {this.setState("info.missingheartbeat", this.missedHeartbeats, true)});
+		this.setState("info.connection", {val:true, ack:true});
 		this.setObjectNotExists(heartbeat.mac, {
 			type: "channel",
 			common: {
@@ -364,7 +346,6 @@ class Motionblinds extends utils.Adapter {
 			},
 			native: {}
 		},() => {this.setState(heartbeat.mac + ".RSSI", heartbeat.data.RSSI, true);});
-
 		this.setObjectNotExists(heartbeat.mac + ".refreshDevs", {
 			type: "state",
 			common: {
@@ -374,22 +355,30 @@ class Motionblinds extends utils.Adapter {
 				read: false,
 				write: true,
 			}, native: {}
-		});
-
+		},() => {this.setState(heartbeat.mac + ".refreshDevs", false, true)});
 		this.subscribeStates("*.refreshDevs");
 	}
 
 	private processDeviceList(devList : void | ReadDeviceAck[]): void{
-		this.log.info("Fetching device list");
+		/*processe device list from bridge and initiates refresh of all known devices */
+		this.log.info("processing device list");
 		this.devices = devList
 		if (this.devices) {
 			this.setState("info.connection", {val:true, ack:true});
+
 			this.log.debug("Devices: " + JSON.stringify(this.devices));
 			for (const dev of this.devices) {
 				this.devicemap.set(dev.mac, { devtype: dev.deviceType });
 			}
 
 		}
+		this.refreshDevices()
+		this.log.debug(JSON.stringify(this.devices));
+	}
+
+	private refreshDevices(): void{
+		/*refrehes all known devices */
+		this.log.debug("refreshing devices")
 		for (const [mac, data] of this.devicemap) {
 
 			this.gateway?.readDevice(mac, data.devtype)
@@ -400,7 +389,29 @@ class Motionblinds extends utils.Adapter {
 				.catch((err) => { return err }
 				)
 		}
-		this.log.debug(JSON.stringify(this.devices));
+	}
+
+	private hbTimeoutExpired(): void {
+		/* handles heartbeat timeouts and sets info.connection to false after to many missed heatbeats*/
+		this.log.debug("heartbeat timed out")
+		clearTimeout(this.heartbeatTimeout)
+		this.heartbeatTimeout = this.setTimeout(()=>this.hbTimeoutExpired(),this.hbTimeout*1000);
+		this.missedHeartbeats = this.missedHeartbeats + 1
+		this.setState("info.missingheartbeat", this.missedHeartbeats, true);
+
+
+		if(this.missedHeartbeats == this.maxMissedHeartbeats){
+			this.log.info("Missing hearbeat for more than " +(this.missedHeartbeats * this.hbTimeout) +" seconds, assuming conection to bridge lost")
+		}
+		if (this.missedHeartbeats == 2){
+			this.log.info("heartbeat missing for more then " + (this.hbTimeout * this.missedHeartbeats) + " seconds, pleas check yor network connection")
+		}
+		if (this.missedHeartbeats >= this.maxMissedHeartbeats){
+			this.setState("info.connection", {val:false, ack:true});
+		}
+
+
+
 	}
 }
 

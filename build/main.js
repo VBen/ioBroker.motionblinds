@@ -39,6 +39,10 @@ class Motionblinds extends utils.Adapter {
     }));
     this.devices = [];
     this.devicemap = /* @__PURE__ */ new Map();
+    this.hbTimeout = 75;
+    this.refreshInterval = 43200;
+    this.missedHeartbeats = 0;
+    this.maxMissedHeartbeats = 4;
     this.on("ready", this.onReady.bind(this));
     this.on("stateChange", this.onStateChange.bind(this));
     this.on("unload", this.onUnload.bind(this));
@@ -51,7 +55,20 @@ class Motionblinds extends utils.Adapter {
       this.log.error("Timeout was lower than 3sec or undefined, value was resetted to 3sec, please correct your adapter configuration");
     }
     this.log.info("using timeout:" + this.config.timeout);
-    this.setState("info.connection", false, true);
+    this.setState("info.connection", { val: false, ack: true });
+    this.setObjectNotExists("info.missingheartbeat", {
+      type: "state",
+      common: {
+        name: "Missed Hearbeats",
+        role: "counter",
+        type: "number",
+        read: false,
+        write: true
+      },
+      native: {}
+    }, () => {
+      this.setState("info.missingheartbeat", this.missedHeartbeats, true);
+    });
     this.gateway = new import_motionblinds.MotionGateway({ key: this.config.token, timeoutSec: this.config.timeout });
     this.gateway.start();
     this.gateway.on("report", (report) => {
@@ -63,7 +80,6 @@ class Motionblinds extends utils.Adapter {
     this.gateway.on("heartbeat", (heartbeat) => {
       this.processHeartbeat(heartbeat);
     });
-    this.setState("info.connection", { val: false, ack: true });
     await ((_a = this.gateway) == null ? void 0 : _a.readAllDevices().catch((reason) => {
       this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason));
     }).then((deviceData) => {
@@ -75,6 +91,11 @@ class Motionblinds extends utils.Adapter {
     this.subscribeStates("*.stop");
     this.subscribeStates("*.device_query");
     this.subscribeStates("*.angle");
+    this.heartbeatTimeout = this.setTimeout(() => this.hbTimeoutExpired(), this.hbTimeout * 1e3);
+    this.queryDevicesInterval = this.setInterval(() => {
+      this.log.debug("auto refresh started");
+      this.refreshDevices();
+    }, this.refreshInterval * 1e3);
   }
   onUnload(callback) {
     this.log.info("Shutting down adapter");
@@ -86,6 +107,8 @@ class Motionblinds extends utils.Adapter {
           this.gateway.recvSocket.close();
         this.gateway.stop();
       }
+      this.clearTimeout(this.heartbeatTimeout);
+      this.clearInterval(this.queryDevicesInterval);
       callback();
     } catch (e) {
       callback();
@@ -94,52 +117,56 @@ class Motionblinds extends utils.Adapter {
   async onStateChange(id, state) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     if (state) {
-      this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-      let doUpdate = false;
+      if (state.ack == false) {
+        this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
+      }
       const devicetype = (_a = this.devicemap.get(this.getMacForID(id))) == null ? void 0 : _a.devtype;
       if (devicetype) {
         if (state.ack == false && id.search("position") > 0) {
           await ((_b = this.gateway) == null ? void 0 : _b.writeDevice(this.getMacForID(id), devicetype, { targetPosition: Number(state.val) }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
-          doUpdate = true;
         } else if (state.ack == false && id.search("angle") > 0) {
           await ((_c = this.gateway) == null ? void 0 : _c.writeDevice(this.getMacForID(id), devicetype, { targetAngle: Number(state.val) }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
-          doUpdate = true;
         } else if (state.ack == false && id.search("fullup") > 0) {
+          this.setStateAsync(id, false, true);
           await ((_d = this.gateway) == null ? void 0 : _d.writeDevice(this.getMacForID(id), devicetype, { operation: 1 }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         } else if (state.ack == false && id.search("fulldown") > 0) {
+          this.setStateAsync(id, false, true);
           await ((_e = this.gateway) == null ? void 0 : _e.writeDevice(this.getMacForID(id), devicetype, { operation: 0 }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         } else if (state.ack == false && id.search("stop") > 0) {
+          this.setStateAsync(id, false, true);
           await ((_f = this.gateway) == null ? void 0 : _f.writeDevice(this.getMacForID(id), devicetype, { operation: 2 }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         }
-        if (state.ack == false && doUpdate) {
+        if (state.ack == false) {
+          this.setStateAsync(id, false, true);
           await ((_g = this.gateway) == null ? void 0 : _g.writeDevice(this.getMacForID(id), devicetype, { operation: 5 }).then((value) => {
-            this.log.info("got ack: " + JSON.stringify(value));
+            this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         }
       }
       if (state.ack == false && id.search("refreshDevs") > 0) {
+        this.setStateAsync(id, false, true);
         this.log.info("Device refresh was triggered");
         await ((_h = this.gateway) == null ? void 0 : _h.readAllDevices().catch((reason) => {
           this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason));
@@ -156,7 +183,10 @@ class Motionblinds extends utils.Adapter {
     return splitted_id[splitted_id.length - 2];
   }
   updateFromReport(report) {
-    this.log.debug("Report: " + JSON.stringify(report));
+    if (report.deviceType == import_motionblinds.DEVICE_TYPE_GATEWAY) {
+      return;
+    }
+    this.log.debug("Parsing Message: " + JSON.stringify(report));
     this.setObjectNotExists(report.mac, {
       type: "channel",
       common: {
@@ -249,11 +279,31 @@ class Motionblinds extends utils.Adapter {
           write: true
         },
         native: {}
+      }, () => {
+        this.setState(report.mac + "." + btn, false, true);
       });
     }
   }
   processHeartbeat(heartbeat) {
     this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
+    this.log.debug("Resetting heartbeat timeout");
+    clearTimeout(this.heartbeatTimeout);
+    this.heartbeatTimeout = this.setTimeout(() => this.hbTimeoutExpired(), this.hbTimeout * 1e3);
+    this.missedHeartbeats = 0;
+    this.setObjectNotExists("info.missingheartbeat", {
+      type: "state",
+      common: {
+        name: "Missed Hearbeats",
+        role: "counter",
+        type: "number",
+        read: false,
+        write: true
+      },
+      native: {}
+    }, () => {
+      this.setState("info.missingheartbeat", this.missedHeartbeats, true);
+    });
+    this.setState("info.connection", { val: true, ack: true });
     this.setObjectNotExists(heartbeat.mac, {
       type: "channel",
       common: {
@@ -300,12 +350,13 @@ class Motionblinds extends utils.Adapter {
         write: true
       },
       native: {}
+    }, () => {
+      this.setState(heartbeat.mac + ".refreshDevs", false, true);
     });
     this.subscribeStates("*.refreshDevs");
   }
   processDeviceList(devList) {
-    var _a;
-    this.log.info("Fetching device list");
+    this.log.info("processing device list");
     this.devices = devList;
     if (this.devices) {
       this.setState("info.connection", { val: true, ack: true });
@@ -314,6 +365,12 @@ class Motionblinds extends utils.Adapter {
         this.devicemap.set(dev.mac, { devtype: dev.deviceType });
       }
     }
+    this.refreshDevices();
+    this.log.debug(JSON.stringify(this.devices));
+  }
+  refreshDevices() {
+    var _a;
+    this.log.debug("refreshing devices");
     for (const [mac, data] of this.devicemap) {
       (_a = this.gateway) == null ? void 0 : _a.readDevice(mac, data.devtype).then((value) => {
         const reportdata = { msgType: "Report", data: value.data, mac, deviceType: data.devtype };
@@ -322,7 +379,22 @@ class Motionblinds extends utils.Adapter {
         return err;
       });
     }
-    this.log.debug(JSON.stringify(this.devices));
+  }
+  hbTimeoutExpired() {
+    this.log.debug("heartbeat timed out");
+    clearTimeout(this.heartbeatTimeout);
+    this.heartbeatTimeout = this.setTimeout(() => this.hbTimeoutExpired(), this.hbTimeout * 1e3);
+    this.missedHeartbeats = this.missedHeartbeats + 1;
+    this.setState("info.missingheartbeat", this.missedHeartbeats, true);
+    if (this.missedHeartbeats == this.maxMissedHeartbeats) {
+      this.log.info("Missing hearbeat for more than " + this.missedHeartbeats * this.hbTimeout + " seconds, assuming conection to bridge lost");
+    }
+    if (this.missedHeartbeats == 2) {
+      this.log.info("heartbeat missing for more then " + this.hbTimeout * this.missedHeartbeats + " seconds, pleas check yor network connection");
+    }
+    if (this.missedHeartbeats >= this.maxMissedHeartbeats) {
+      this.setState("info.connection", { val: false, ack: true });
+    }
   }
 }
 if (require.main !== module) {
