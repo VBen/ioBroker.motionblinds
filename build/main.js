@@ -44,10 +44,11 @@ class Motionblinds extends utils.Adapter {
     this.on("unload", this.onUnload.bind(this));
   }
   async onReady() {
+    var _a;
     this.log.info("config token: " + this.config.token);
     if (this.config.timeout < 3 || !this.config.timeout) {
-      this.config.timeout = 0;
-      this.log.error("Timout was lower than 3sec or undefined, value was resetted to 3sec, please correct your adapter configuration");
+      this.config.timeout = 3;
+      this.log.error("Timeout was lower than 3sec or undefined, value was resetted to 3sec, please correct your adapter configuration");
     }
     this.log.info("using timeout:" + this.config.timeout);
     this.setState("info.connection", false, true);
@@ -60,27 +61,14 @@ class Motionblinds extends utils.Adapter {
       this.log.error("Error: " + JSON.stringify(err));
     });
     this.gateway.on("heartbeat", (heartbeat) => {
-      this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
+      this.processHeartbeat(heartbeat);
     });
-    this.setState("info.connection", false, true);
-    this.log.info("Fetching device list");
-    this.devices = await this.gateway.readAllDevices().catch((reason) => this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason)));
-    if (this.devices) {
-      this.setState("info.connection", true, true);
-      this.log.debug("Devices: " + JSON.stringify(this.devices));
-      for (const dev of this.devices) {
-        this.devicemap.set(dev.mac, { devtype: dev.deviceType });
-      }
-    }
-    for (const [mac, data] of this.devicemap) {
-      await this.gateway.readDevice(mac, data.devtype).then((value) => {
-        const reportdata = { msgType: "Report", data: value.data, mac, deviceType: data.devtype };
-        this.updateFromReport(reportdata);
-      }).catch((err) => {
-        return err;
-      });
-    }
-    this.log.debug(JSON.stringify(this.devices));
+    this.setState("info.connection", { val: false, ack: true });
+    await ((_a = this.gateway) == null ? void 0 : _a.readAllDevices().catch((reason) => {
+      this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason));
+    }).then((deviceData) => {
+      this.processDeviceList(deviceData);
+    }));
     this.subscribeStates("*.position");
     this.subscribeStates("*.fullup");
     this.subscribeStates("*.fulldown");
@@ -104,7 +92,7 @@ class Motionblinds extends utils.Adapter {
     }
   }
   async onStateChange(id, state) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     if (state) {
       this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
       let doUpdate = false;
@@ -150,6 +138,14 @@ class Motionblinds extends utils.Adapter {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         }
+      }
+      if (state.ack == false && id.search("refreshDevs") > 0) {
+        this.log.info("Device refresh was triggered");
+        await ((_h = this.gateway) == null ? void 0 : _h.readAllDevices().catch((reason) => {
+          this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason));
+        }).then((deviceData) => {
+          this.processDeviceList(deviceData);
+        }));
       }
     } else {
       this.log.info(`state ${id} deleted`);
@@ -255,6 +251,78 @@ class Motionblinds extends utils.Adapter {
         native: {}
       });
     }
+  }
+  processHeartbeat(heartbeat) {
+    this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
+    this.setObjectNotExists(heartbeat.mac, {
+      type: "channel",
+      common: {
+        name: "Bridge " + heartbeat.mac,
+        role: "blind"
+      },
+      native: {
+        mac: heartbeat.mac
+      }
+    });
+    this.setObjectNotExistsAsync(heartbeat.mac + ".devCount", {
+      type: "state",
+      common: {
+        name: "Device Count",
+        role: "blind",
+        type: "number",
+        read: true,
+        write: false
+      },
+      native: {}
+    }, () => {
+      this.setState(heartbeat.mac + ".devCount", heartbeat.data.numberOfDevices, true);
+    });
+    this.setObjectNotExistsAsync(heartbeat.mac + ".RSSI", {
+      type: "state",
+      common: {
+        name: "RSSI Count",
+        role: "blind",
+        type: "number",
+        read: true,
+        write: false
+      },
+      native: {}
+    }, () => {
+      this.setState(heartbeat.mac + ".RSSI", heartbeat.data.RSSI, true);
+    });
+    this.setObjectNotExists(heartbeat.mac + ".refreshDevs", {
+      type: "state",
+      common: {
+        name: "Refresh Devices",
+        role: "button",
+        type: "boolean",
+        read: false,
+        write: true
+      },
+      native: {}
+    });
+    this.subscribeStates("*.refreshDevs");
+  }
+  processDeviceList(devList) {
+    var _a;
+    this.log.info("Fetching device list");
+    this.devices = devList;
+    if (this.devices) {
+      this.setState("info.connection", { val: true, ack: true });
+      this.log.debug("Devices: " + JSON.stringify(this.devices));
+      for (const dev of this.devices) {
+        this.devicemap.set(dev.mac, { devtype: dev.deviceType });
+      }
+    }
+    for (const [mac, data] of this.devicemap) {
+      (_a = this.gateway) == null ? void 0 : _a.readDevice(mac, data.devtype).then((value) => {
+        const reportdata = { msgType: "Report", data: value.data, mac, deviceType: data.devtype };
+        this.updateFromReport(reportdata);
+      }).catch((err) => {
+        return err;
+      });
+    }
+    this.log.debug(JSON.stringify(this.devices));
   }
 }
 if (require.main !== module) {

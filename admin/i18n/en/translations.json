@@ -1,4 +1,5 @@
 {
+    "hostip": "Host IP for multicast",
     "motionblinds adapter settings": "Adapter settings for motionblinds",
     "timeout": "Timeout (seconds)",
     "token": "Accesstoken"

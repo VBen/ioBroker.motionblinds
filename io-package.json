@@ -106,7 +106,8 @@
     },
     "native": {
         "token": "",
-        "timeout": "10"
+        "timeout": "10",
+        "hostip": ""
     },
     "objects": [],
     "instanceObjects": [

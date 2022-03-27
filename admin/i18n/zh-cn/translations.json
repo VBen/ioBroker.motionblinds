@@ -1,4 +1,5 @@
 {
+    "hostip": "主机 IP",
     "motionblinds adapter settings": "motionblinds的适配器设置",
     "timeout": "超时（秒）",
     "token": "访问令牌"

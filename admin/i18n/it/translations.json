@@ -1,4 +1,5 @@
 {
+    "hostip": "IP host",
     "motionblinds adapter settings": "Impostazioni dell'adattatore per motionblinds",
     "timeout": "Timeout (secondi)",
     "token": "Token di accesso"

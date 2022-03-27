@@ -1,4 +1,5 @@
 {
+    "hostip": "IP del anfitrión",
     "motionblinds adapter settings": "Ajustes del adaptador para motionblinds",
     "timeout": "Tiempo de espera (segundos)",
     "token": "token de acceso"
