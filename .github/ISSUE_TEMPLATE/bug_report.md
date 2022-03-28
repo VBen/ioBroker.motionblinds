@@ -1,9 +1,10 @@
 ---
 name: Bug report
 about: Something is not working as it should
-title: ''
-labels: ''
+title: "[BUG]"
+labels: bug
 assignees: ''
+
 ---
 
 **Describe the bug**  
@@ -21,6 +22,7 @@ A clear and concise description of what you expected to happen.
 
 **Screenshots & Logfiles**  
 If applicable, add screenshots and logfiles to help explain your problem.
+Please switch debuglevel to silly before creating the log
 
 **Versions:**  
  - Adapter version: <adapter-version>
