@@ -373,7 +373,6 @@ class Motionblinds extends utils.Adapter {
 
 		}
 		this.refreshDevices()
-		this.log.debug(JSON.stringify(this.devices));
 	}
 
 	private refreshDevices(): void{
