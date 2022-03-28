@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '14.x'
           # Uncomment the following line if your adapter cannot be installed using 'npm ci'
-          # install-command: 'npm install'
+          install-command: 'npm install'
           type-checking: true
           lint: true
 
@@ -46,7 +46,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           os: ${{ matrix.os }}
           # Uncomment the following line if your adapter cannot be installed using 'npm ci'
-          # install-command: 'npm install'
+          install-command: 'npm install'
           build: true
 
 # TODO: To enable automatic npm releases, create a token on npmjs.org 
