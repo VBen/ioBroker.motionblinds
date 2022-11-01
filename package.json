@@ -19,7 +19,7 @@
     "url": "https://github.com/VBen/ioBroker.motionblinds"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^2.6.0",
+    "@iobroker/adapter-core": "^2.6.7",
     "motionblinds": "git+https://github.com/VBen/node-motionblinds.git"
   },
   "devDependencies": {
