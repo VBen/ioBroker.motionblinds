@@ -1,26 +1,10 @@
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -29,24 +13,37 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var utils = __toESM(require("@iobroker/adapter-core"));
 var import_motionblinds = require("motionblinds");
 class Motionblinds extends utils.Adapter {
   constructor(options = {}) {
-    super(__spreadProps(__spreadValues({}, options), {
+    super({
+      ...options,
       name: "motionblinds"
-    }));
+    });
     this.devices = [];
     this.devicemap = /* @__PURE__ */ new Map();
     this.hbTimeout = 75;
+    // default timing for heartbeat messages: 60s
     this.refreshInterval = 43200;
+    // 12hours refresh for getting battery states from devices
     this.missedHeartbeats = 0;
     this.maxMissedHeartbeats = 4;
     this.on("ready", this.onReady.bind(this));
     this.on("stateChange", this.onStateChange.bind(this));
     this.on("unload", this.onUnload.bind(this));
   }
+  /**
+   * Is called when databases are connected and adapter received configuration.
+   */
   async onReady() {
     var _a;
     this.log.info("config token: " + this.config.token);
@@ -97,6 +94,9 @@ class Motionblinds extends utils.Adapter {
       this.refreshDevices();
     }, this.refreshInterval * 1e3);
   }
+  /**
+   * Is called when adapter shuts down - callback has to be called under any circumstances!
+   */
   onUnload(callback) {
     this.log.info("Shutting down adapter");
     try {
@@ -252,42 +252,50 @@ class Motionblinds extends utils.Adapter {
           break;
         default:
       }
-      this.setObjectNotExists(dp, {
-        type: "state",
-        common: {
-          name,
-          role: "blind",
-          type,
-          read: true,
-          write,
-          unit
+      this.setObjectNotExists(
+        dp,
+        {
+          type: "state",
+          common: {
+            name,
+            role: "blind",
+            type,
+            read: true,
+            write,
+            unit
+          },
+          native: {}
         },
-        native: {}
-      }, () => {
-        this.setState(dp, value, true);
-      });
+        () => {
+          this.setState(dp, value, true);
+        }
+      );
     });
     const btns = ["fullup", "fulldown", "stop", "device_query"];
     for (const btn of btns) {
-      this.setObjectNotExists(report.mac + "." + btn, {
-        type: "state",
-        common: {
-          name: btn,
-          role: "button",
-          type: "boolean",
-          read: false,
-          write: true
+      this.setObjectNotExists(
+        report.mac + "." + btn,
+        {
+          type: "state",
+          common: {
+            name: btn,
+            role: "button",
+            type: "boolean",
+            read: false,
+            write: true
+          },
+          native: {}
         },
-        native: {}
-      }, () => {
-        this.setState(report.mac + "." + btn, false, true);
-      });
+        () => {
+          this.setState(report.mac + "." + btn, false, true);
+        }
+      );
     }
   }
   processHeartbeat(heartbeat) {
     this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
     this.log.debug("Resetting heartbeat timeout");
-    clearTimeout(this.heartbeatTimeout);
+    this.clearTimeout(this.heartbeatTimeout);
     this.heartbeatTimeout = this.setTimeout(() => this.hbTimeoutExpired(), this.hbTimeout * 1e3);
     this.missedHeartbeats = 0;
     this.setObjectNotExists("info.missingheartbeat", {
@@ -366,7 +374,6 @@ class Motionblinds extends utils.Adapter {
       }
     }
     this.refreshDevices();
-    this.log.debug(JSON.stringify(this.devices));
   }
   refreshDevices() {
     var _a;
@@ -375,14 +382,16 @@ class Motionblinds extends utils.Adapter {
       (_a = this.gateway) == null ? void 0 : _a.readDevice(mac, data.devtype).then((value) => {
         const reportdata = { msgType: "Report", data: value.data, mac, deviceType: data.devtype };
         this.updateFromReport(reportdata);
-      }).catch((err) => {
-        return err;
-      });
+      }).catch(
+        (err) => {
+          return err;
+        }
+      );
     }
   }
   hbTimeoutExpired() {
     this.log.debug("heartbeat timed out");
-    clearTimeout(this.heartbeatTimeout);
+    this.clearTimeout(this.heartbeatTimeout);
     this.heartbeatTimeout = this.setTimeout(() => this.hbTimeoutExpired(), this.hbTimeout * 1e3);
     this.missedHeartbeats = this.missedHeartbeats + 1;
     this.setState("info.missingheartbeat", this.missedHeartbeats, true);

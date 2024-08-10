@@ -2,6 +2,6 @@
   "version": 3,
   "sources": ["../../src/lib/tools.ts"],
   "sourcesContent": ["//import axios from \"axios\";\r\n\r\n/**\r\n * Tests whether the given variable is a real object and not an Array\r\n * @param it The variable to test\r\n */\r\nexport function isObject(it: unknown): it is Record<string, any> {\r\n\t// This is necessary because:\r\n\t// typeof null === 'object'\r\n\t// typeof [] === 'object'\r\n\t// [] instanceof Object === true\r\n\treturn Object.prototype.toString.call(it) === \"[object Object]\";\r\n}\r\n\r\n/**\r\n * Tests whether the given variable is really an Array\r\n * @param it The variable to test\r\n */\r\nexport function isArray(it: unknown): it is any[] {\r\n\tif (Array.isArray != null) return Array.isArray(it);\r\n\treturn Object.prototype.toString.call(it) === \"[object Array]\";\r\n}\r\n\r\n\r\n"],
-  "mappings": ";;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAMO,kBAAkB,IAAwC;AAKhE,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;AAMO,iBAAiB,IAA0B;AACjD,MAAI,MAAM,WAAW;AAAM,WAAO,MAAM,QAAQ,EAAE;AAClD,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;",
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAMO,SAAS,SAAS,IAAwC;AAKhE,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;AAMO,SAAS,QAAQ,IAA0B;AACjD,MAAI,MAAM,WAAW;AAAM,WAAO,MAAM,QAAQ,EAAE;AAClD,SAAO,OAAO,UAAU,SAAS,KAAK,EAAE,MAAM;AAC/C;",
   "names": []
 }

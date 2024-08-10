@@ -23,8 +23,8 @@ class Motionblinds extends utils.Adapter {
 	private refreshInterval = 43200; // 12hours refresh for getting battery states from devices
 	private missedHeartbeats = 0;
 	private maxMissedHeartbeats = 4; //maximum middes hearbeats before assuming a lost connection
-	private heartbeatTimeout!: ioBroker.Timeout;
-	private queryDevicesInterval!: ioBroker.Interval ;
+	private heartbeatTimeout!: ioBroker.Timeout | undefined;
+	private queryDevicesInterval!: ioBroker.Interval | undefined;
 
 
 
@@ -298,7 +298,7 @@ class Motionblinds extends utils.Adapter {
 		/* processes received hearbeat messages and set info.connction to true after receiving */
 		this.log.debug("Heartbeat: " + JSON.stringify(heartbeat));
 		this.log.debug("Resetting heartbeat timeout")
-		clearTimeout(this.heartbeatTimeout)
+		this.clearTimeout(this.heartbeatTimeout)
 		this.heartbeatTimeout = this.setTimeout(()=>this.hbTimeoutExpired(),this.hbTimeout*1000);
 		this.missedHeartbeats = 0
 		this.setObjectNotExists("info.missingheartbeat", {
@@ -393,7 +393,7 @@ class Motionblinds extends utils.Adapter {
 	private hbTimeoutExpired(): void {
 		/* handles heartbeat timeouts and sets info.connection to false after to many missed heatbeats*/
 		this.log.debug("heartbeat timed out")
-		clearTimeout(this.heartbeatTimeout)
+		this.clearTimeout(this.heartbeatTimeout)
 		this.heartbeatTimeout = this.setTimeout(()=>this.hbTimeoutExpired(),this.hbTimeout*1000);
 		this.missedHeartbeats = this.missedHeartbeats + 1
 		this.setState("info.missingheartbeat", this.missedHeartbeats, true);
