@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "motionblinds",
-        "version": "0.2.0",
+        "version": "0.2.1",
         "news": {
             "0.2.0": {
                 "en": "added timeout support\nfixed warnings during new state creation\nupdated dependencies",
