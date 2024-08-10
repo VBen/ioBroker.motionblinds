@@ -248,7 +248,7 @@ class Motionblinds extends utils.Adapter {
           name = "Battery Level";
           unit = "%";
           type = "number";
-          value = value / 10;
+          value = Math.round(import_motionblinds.MotionGateway.BatteryInfo(value)[1] * 100);
           break;
         default:
       }
