@@ -135,21 +135,21 @@ class Motionblinds extends utils.Adapter {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         } else if (state.ack == false && id.search("fullup") > 0) {
-          this.setStateAsync(id, false, true);
+          this.setState(id, false, true);
           await ((_d = this.gateway) == null ? void 0 : _d.writeDevice(this.getMacForID(id), devicetype, { operation: 1 }).then((value) => {
             this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         } else if (state.ack == false && id.search("fulldown") > 0) {
-          this.setStateAsync(id, false, true);
+          this.setState(id, false, true);
           await ((_e = this.gateway) == null ? void 0 : _e.writeDevice(this.getMacForID(id), devicetype, { operation: 0 }).then((value) => {
             this.updateFromReport(value);
           }).catch((err) => {
             this.log.error("got error while writing: " + JSON.stringify(err));
           }));
         } else if (state.ack == false && id.search("stop") > 0) {
-          this.setStateAsync(id, false, true);
+          this.setState(id, false, true);
           await ((_f = this.gateway) == null ? void 0 : _f.writeDevice(this.getMacForID(id), devicetype, { operation: 2 }).then((value) => {
             this.updateFromReport(value);
           }).catch((err) => {
@@ -157,7 +157,7 @@ class Motionblinds extends utils.Adapter {
           }));
         }
         if (state.ack == false) {
-          this.setStateAsync(id, false, true);
+          this.setState(id, false, true);
           await ((_g = this.gateway) == null ? void 0 : _g.writeDevice(this.getMacForID(id), devicetype, { operation: 5 }).then((value) => {
             this.updateFromReport(value);
           }).catch((err) => {
@@ -166,7 +166,7 @@ class Motionblinds extends utils.Adapter {
         }
       }
       if (state.ack == false && id.search("refreshDevs") > 0) {
-        this.setStateAsync(id, false, true);
+        this.setState(id, false, true);
         this.log.info("Device refresh was triggered");
         await ((_h = this.gateway) == null ? void 0 : _h.readAllDevices().catch((reason) => {
           this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason));

@@ -142,30 +142,30 @@ class Motionblinds extends utils.Adapter {
 						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				} else if (state.ack == false && id.search("fullup") > 0) {
-					this.setStateAsync(id,false,true)
+					this.setState(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 1 })
 						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				} else if (state.ack == false && id.search("fulldown") > 0) {
-					this.setStateAsync(id,false,true)
+					this.setState(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 0 })
 						.then((value) => {this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				} else if (state.ack == false && id.search("stop") > 0) {
-					this.setStateAsync(id,false,true)
+					this.setState(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 2 })
 						.then((value) => {this.updateFromReport(value) })
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
 				if (state.ack == false) {
-					this.setStateAsync(id,false,true)
+					this.setState(id,false,true)
 					await this.gateway?.writeDevice(this.getMacForID(id), devicetype, { operation: 5 })
 						.then((value) => { this.updateFromReport(value)})
 						.catch((err) => { this.log.error("got error while writing: " + JSON.stringify(err)) });
 				}
 			}
 			if (state.ack == false && id.search("refreshDevs") > 0){
-				this.setStateAsync(id,false,true)
+				this.setState(id,false,true)
 				this.log.info("Device refresh was triggered")
 				await this.gateway?.readAllDevices()
 					.catch((reason) => {this.log.error("Failed fetching list of MOTION Blinds: " + JSON.stringify(reason))})
@@ -255,7 +255,6 @@ class Motionblinds extends utils.Adapter {
 					unit = "%";
 					type = "number";
 					value = Math.round(MotionGateway.BatteryInfo(value)[1] * 100);
-					//value = value / 10;
 					break;
 
 				default:
