@@ -40,7 +40,7 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.3.0-beta.0 (2024-08-11)
 
 - (VBen) big dependency update
 - (VBen) fixed #149 battery level calculation
