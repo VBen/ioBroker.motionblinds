@@ -24,19 +24,23 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var utils = __toESM(require("@iobroker/adapter-core"));
 var import_motionblinds = require("motionblinds");
 class Motionblinds extends utils.Adapter {
+  gateway;
+  devices = [];
+  devicemap = /* @__PURE__ */ new Map();
+  hbTimeout = 75;
+  // default timing for heartbeat messages: 60s
+  refreshInterval = 43200;
+  // 12hours refresh for getting battery states from devices
+  missedHeartbeats = 0;
+  maxMissedHeartbeats = 4;
+  //maximum middes hearbeats before assuming a lost connection
+  heartbeatTimeout;
+  queryDevicesInterval;
   constructor(options = {}) {
     super({
       ...options,
       name: "motionblinds"
     });
-    this.devices = [];
-    this.devicemap = /* @__PURE__ */ new Map();
-    this.hbTimeout = 75;
-    // default timing for heartbeat messages: 60s
-    this.refreshInterval = 43200;
-    // 12hours refresh for getting battery states from devices
-    this.missedHeartbeats = 0;
-    this.maxMissedHeartbeats = 4;
     this.on("ready", this.onReady.bind(this));
     this.on("stateChange", this.onStateChange.bind(this));
     this.on("unload", this.onUnload.bind(this));
@@ -219,7 +223,7 @@ class Motionblinds extends utils.Adapter {
           dp = dp = report.mac + ".angle";
           name = "Shutter Angle";
           type = "number";
-          unit = "\xB0";
+          unit = "\uFFFD";
           write = true;
           break;
         case "voltageMode":

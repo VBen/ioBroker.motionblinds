@@ -225,7 +225,7 @@ class Motionblinds extends utils.Adapter {
 					dp = dp = report.mac + ".angle";
 					name = "Shutter Angle";
 					type = "number";
-					unit = "Â°"
+					unit = "°"
 					write = true;
 					break;
 				case "voltageMode":
@@ -421,3 +421,4 @@ if (require.main !== module) {
 	// otherwise start the instance directly
 	(() => new Motionblinds())();
 }
+

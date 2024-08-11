@@ -31,7 +31,10 @@
 	"license": "MIT License",
 	"ci": "gh-actions",
 	"dependabot": "yes",
-	"creatorVersion": "2.1.0",
+	"creatorVersion": "2.6.3",
 	"i18n": "words.js",
-	"defaultBranch": "master"
+	"defaultBranch": "master",
+	"replay": "C:\\Users\\Skymaster\\Documents\\develeop\\IOBROKER\\ioBroker.motionblinds\\.create-adapter.json",
+	"nodeVersion": "18",
+	"adminUi": "html"
 }
