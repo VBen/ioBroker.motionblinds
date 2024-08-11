@@ -11,8 +11,8 @@ module.exports = {
 	],
 	plugins: [],
 	rules: {
-		"indent": "off",
-		"@typescript-eslint/indent": [
+		//"indent": "off",
+		"indent": [
 			"error",
 			"tab",
 			{

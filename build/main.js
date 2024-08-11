@@ -115,6 +115,7 @@ class Motionblinds extends utils.Adapter {
       this.clearInterval(this.queryDevicesInterval);
       callback();
     } catch (e) {
+      this.log.error(`error while unloding module: ${e}`);
       callback();
     }
   }
