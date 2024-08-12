@@ -116,6 +116,7 @@ class Motionblinds extends utils.Adapter {
 
 			callback();
 		} catch (e) {
+			this.log.error(`error while unloding module: ${e}`);
 			callback();
 		}
 	}
@@ -225,7 +226,7 @@ class Motionblinds extends utils.Adapter {
 					dp = dp = report.mac + ".angle";
 					name = "Shutter Angle";
 					type = "number";
-					unit = "°"
+					unit = "ï¿½"
 					write = true;
 					break;
 				case "voltageMode":
