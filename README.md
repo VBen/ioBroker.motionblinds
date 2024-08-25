@@ -40,12 +40,13 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.3.0 (2024-08-25)
 
 - (Vben) switched to @vben19/motionblinds to fix windows errors
 - (VBen) removed gulp 
 - (VBen) updated translations
 - (VBen) updated workflows
+
 ### 0.3.0-beta.0 (2024-08-11)
 
 - (VBen) big dependency update

@@ -1,6 +1,6 @@
 {
   "name": "iobroker.motionblinds",
-  "version": "0.3.0-beta.0",
+  "version": "0.3.0",
   "description": "ioBroker Adpter to control blind motors from MotionBlinds.",
   "author": {
     "name": "Vben",

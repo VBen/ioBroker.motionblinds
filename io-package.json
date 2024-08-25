@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "motionblinds",
-    "version": "0.3.0-beta.0",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "switched to @vben19/motionblinds to fix windows errors\nremoved gulp \nupdated translations\nupdated workflows",
+        "de": "auf @vben19/motionblinds umgestellt, um fensterfehler zu beheben\nentfernte gulp\naktualisierung der übersetzungen\naktualisierte workflows",
+        "ru": "переключен на @vben19/motionblinds для исправления ошибок окон\nудаленный gulp\nобновленные переводы\nобновленные рабочие процессы",
+        "pt": "para corrigir erros do windows\nremovido gulp\ntraduções atualizadas\nfluxos de trabalho atualizados",
+        "nl": "schakelde naar @vben19/motionblinds om vensterfouten op te lossen\nverwijderde gulp\nbijgewerkte vertalingen\nbijgewerkte workflows",
+        "fr": "commuté sur @vben19/motionblinds pour corriger les erreurs de fenêtres\ngoéland enlevé\ntraductions actualisées\ndes flux de travail actualisés",
+        "it": "commutato a @vben19/motionblinds per correggere gli errori delle finestre\ngulp rimosso\ntraduzioni aggiornate\nflussi di lavoro aggiornati",
+        "es": "conmutado a @vben19/motionblinds para corregir errores de ventanas\ngolp eliminado\ntraducciones actualizadas\nflujos de trabajo actualizados",
+        "pl": "przełączony na @ vben19 / motionrolety, aby naprawić błędy okien\nusunięty przełyk\nzaktualizowane tłumaczenia\nzaktualizowane przepływy pracy",
+        "uk": "перемкнено до @vben19/motionblinds для виправлення помилок вікон\nприбрати гель\nоновлені переклади\nоновлені робочі процеси",
+        "zh-cn": "切换到 @vben19/ motionblinds 以修正窗口错误\n已移除 gulp\n最新翻译\n更新工作流程"
+      },
       "0.3.0-beta.0": {
         "en": "big dependency update\nfixed #149 battery level calculation\nimproved heartbeat message parsing\nautomatic device refresh after command sending\nbetter logging\nfixed info.connection state\ncode cleanup\nfixed translations\nswitched to new release script version",
         "de": "große abhängigkeits-update\nfest #149 batteriestand berechnung\nverbesserte herzschlag-nachricht-pasing\nautomatisches gerät aktualisieren nach befehl senden\nbessere protokollierung\nfix info.connection state\ncode-reinigung\nfeste übersetzungen\nauf neue release-skript-version umgestellt",
