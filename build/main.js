@@ -22,7 +22,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var utils = __toESM(require("@iobroker/adapter-core"));
-var import_motionblinds = require("motionblinds");
+var import_motionblinds = require("@vben19/motionblinds");
 class Motionblinds extends utils.Adapter {
   gateway;
   devices = [];
@@ -115,6 +115,7 @@ class Motionblinds extends utils.Adapter {
       this.clearInterval(this.queryDevicesInterval);
       callback();
     } catch (e) {
+      this.log.error(`error while unloding module: ${e}`);
       callback();
     }
   }

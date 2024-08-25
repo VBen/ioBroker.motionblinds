@@ -5,7 +5,7 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from "@iobroker/adapter-core";
-import { MotionGateway, Report, BlindType, ReadDeviceAck, DeviceType, Operation, VoltageMode, LimitsState, WirelessMode, Heartbeat, WriteDeviceAck, DEVICE_TYPE_GATEWAY } from "motionblinds";
+import { MotionGateway, Report, BlindType, ReadDeviceAck, DeviceType, Operation, VoltageMode, LimitsState, WirelessMode, Heartbeat, WriteDeviceAck, DEVICE_TYPE_GATEWAY } from "@vben19/motionblinds";
 
 
 // Load your modules here, e.g.:
@@ -116,6 +116,7 @@ class Motionblinds extends utils.Adapter {
 
 			callback();
 		} catch (e) {
+			this.log.error(`error while unloding module: ${e}`);
 			callback();
 		}
 	}
@@ -225,7 +226,7 @@ class Motionblinds extends utils.Adapter {
 					dp = dp = report.mac + ".angle";
 					name = "Shutter Angle";
 					type = "number";
-					unit = "°"
+					unit = "ï¿½"
 					write = true;
 					break;
 				case "voltageMode":
