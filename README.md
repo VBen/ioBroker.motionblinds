@@ -42,6 +42,7 @@ This adapter uses UDP unicast and UDP multicast, ensure your firewall is not blo
 -->
 ### **WORK IN PROGRESS**
 
+- (Vben) switched to @vben19/motionblinds to fix windows errors
 - (VBen) removed gulp 
 - (VBen) updated translations
 - (VBen) updated workflows
