@@ -105,10 +105,8 @@ class Motionblinds extends utils.Adapter {
     this.log.info("Shutting down adapter");
     try {
       if (this.gateway) {
-        if (this.gateway.sendSocket)
-          this.gateway.sendSocket.close();
-        if (this.gateway.recvSocket)
-          this.gateway.recvSocket.close();
+        if (this.gateway.sendSocket) this.gateway.sendSocket.close();
+        if (this.gateway.recvSocket) this.gateway.recvSocket.close();
         this.gateway.stop();
       }
       this.clearTimeout(this.heartbeatTimeout);

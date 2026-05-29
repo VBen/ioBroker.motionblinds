@@ -1,0 +1,16 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      # Mount source so edits are reflected immediately without rebuild
+      - .:/app
+      # Isolate node_modules — keeps Linux binaries separate from Windows host
+      - motionblinds_node_modules:/app/node_modules
+    working_dir: /app
+    # Default: run the full test suite
+    command: npm test
+
+volumes:
+  motionblinds_node_modules:

@@ -1,0 +1,9 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install dependencies as a separate layer for caching
+COPY package.json package-lock.json* ./
+RUN npm install
+
+# Source is mounted at runtime via docker-compose volume
